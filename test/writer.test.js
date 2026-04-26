@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { buildV2Path, getCompatibilityIssues } from '../src/writer.js';
+import { buildV2Path, getCompatibilityIssues, getMediaType } from '../src/writer.js';
 
 test('builds a V2 filename before the extension', () => {
   assert.equal(
@@ -44,4 +44,16 @@ test('detects Windows XP tags when cleanup is enabled', () => {
     getCompatibilityIssues({ XPComment: 'corrupted text' }, { cleanXp: true }, '+01:00'),
     ['xp-tags-present']
   );
+});
+
+test('detects missing video creation date compatibility tag', () => {
+  assert.deepEqual(
+    getCompatibilityIssues({}, { compatTags: true }, '+01:00', 'video'),
+    ['missing-creationdate-tag']
+  );
+});
+
+test('detects video media type from extension', () => {
+  assert.equal(getMediaType('/tmp/video.mp4'), 'video');
+  assert.equal(getMediaType('/tmp/photo.jpg'), 'image');
 });

@@ -1,7 +1,7 @@
 import { opendir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-const DEFAULT_EXTENSIONS = new Set(['.jpg', '.jpeg', '.tif', '.tiff', '.heic']);
+const DEFAULT_EXTENSIONS = new Set(['.jpg', '.jpeg', '.tif', '.tiff', '.heic', '.mp4', '.mov', '.3gp', '.3g2']);
 
 export async function scanImages(inputPath, options = {}) {
   const recursive = options.recursive ?? true;

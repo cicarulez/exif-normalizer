@@ -1,16 +1,36 @@
 const INVALID_YEARS = new Set([0, 1, 1900, 1970]);
+const EXISTING_DATE_FIELDS = [
+  'DateTimeOriginal',
+  'CreateDate',
+  'CreationDate',
+  'MediaCreateDate',
+  'TrackCreateDate',
+  'ModifyDate',
+  'MediaModifyDate',
+  'TrackModifyDate'
+];
 
-export function resolveDate(meta, fileStats, fileName) {
-  const existing = normalizeExistingExifDate(meta?.DateTimeOriginal);
+export function resolveDate(meta, fileStats, fileName, options = {}) {
+  const existing = findExistingDate(meta);
+  const fromName = extractDateFromFilename(fileName);
+
+  if (options.preferFilename && fromName) {
+    return {
+      date: fromName,
+      source: 'filename',
+      shouldWrite: !existing || !isSameSecond(existing.date, fromName),
+      replacedSource: existing?.source ?? null
+    };
+  }
+
   if (existing) {
     return {
-      date: existing,
-      source: 'exif',
+      date: existing.date,
+      source: existing.source,
       shouldWrite: false
     };
   }
 
-  const fromName = extractDateFromFilename(fileName);
   if (fromName) {
     return {
       date: fromName,
@@ -119,6 +139,24 @@ function normalizeExistingExifDate(value) {
   }
 
   return null;
+}
+
+function findExistingDate(meta) {
+  for (const field of EXISTING_DATE_FIELDS) {
+    const date = normalizeExistingExifDate(meta?.[field]);
+    if (date) {
+      return {
+        date,
+        source: field
+      };
+    }
+  }
+
+  return null;
+}
+
+function isSameSecond(left, right) {
+  return Math.trunc(left.getTime() / 1000) === Math.trunc(right.getTime() / 1000);
 }
 
 function buildLocalDate(year, month, day, hour, minute, second) {

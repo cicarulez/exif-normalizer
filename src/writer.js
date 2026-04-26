@@ -3,17 +3,24 @@ import { access, rename, stat } from 'node:fs/promises';
 import { formatExifDate, formatExifOffset, resolveDate } from './date-resolver.js';
 import { readMetadata, writeDateMetadata } from './exif.service.js';
 
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.3gp', '.3g2']);
+
 export async function fixFileDates(filePath, options = {}) {
   const fileStats = await stat(filePath);
   const meta = await readMetadata(filePath);
-  const resolution = resolveDate(meta, fileStats, path.basename(filePath));
+  const mediaType = getMediaType(filePath);
+  const resolution = resolveDate(meta, fileStats, path.basename(filePath), {
+    preferFilename: options.preferFilename
+  });
   const exifDate = formatExifDate(resolution.date);
   const exifOffset = formatExifOffset(resolution.date);
-  const compatibilityIssues = getCompatibilityIssues(meta, options, exifOffset);
+  const compatibilityIssues = getCompatibilityIssues(meta, options, exifOffset, mediaType);
 
   const result = {
     file: filePath,
+    mediaType,
     source: resolution.source,
+    replacedSource: resolution.replacedSource,
     exifDate,
     exifOffset,
     issues: compatibilityIssues,
@@ -40,7 +47,8 @@ export async function fixFileDates(filePath, options = {}) {
     await writeDateMetadata(filePath, exifDate, {
       fileTime: options.fileTime,
       offset: options.compatTags ? exifOffset : null,
-      cleanXp: options.cleanXp
+      cleanXp: options.cleanXp,
+      mediaType
     });
 
     let metadataPath = filePath;
@@ -83,11 +91,15 @@ async function ensureRenameTargetIsAvailable(filePath, targetPath) {
   throw new Error(`Rename target already exists: ${targetPath}`);
 }
 
-export function getCompatibilityIssues(meta, options = {}, expectedOffset = null) {
+export function getCompatibilityIssues(meta, options = {}, expectedOffset = null, mediaType = 'image') {
   const issues = [];
 
-  if (options.compatTags && expectedOffset && hasMissingOrDifferentOffsetTags(meta, expectedOffset)) {
+  if (options.compatTags && expectedOffset && mediaType === 'image' && hasMissingOrDifferentOffsetTags(meta, expectedOffset)) {
     issues.push('missing-offset-tags');
+  }
+
+  if (options.compatTags && mediaType === 'video' && !meta?.CreationDate) {
+    issues.push('missing-creationdate-tag');
   }
 
   if (options.cleanXp && hasWindowsXpTags(meta)) {
@@ -95,6 +107,10 @@ export function getCompatibilityIssues(meta, options = {}, expectedOffset = null
   }
 
   return issues;
+}
+
+export function getMediaType(filePath) {
+  return VIDEO_EXTENSIONS.has(path.extname(filePath).toLowerCase()) ? 'video' : 'image';
 }
 
 function getPlannedAction(resolution, options, compatibilityIssues) {

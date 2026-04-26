@@ -5,6 +5,20 @@ export async function readMetadata(filePath) {
 }
 
 export async function writeDateMetadata(filePath, exifDate, options = {}) {
+  const tags = options.mediaType === 'video' ? buildVideoTags(exifDate, options) : buildImageTags(exifDate, options);
+
+  if (options.fileTime) {
+    tags.FileModifyDate = exifDate;
+  }
+
+  return exiftool.write(
+    filePath,
+    tags,
+    ['-overwrite_original']
+  );
+}
+
+function buildImageTags(exifDate, options) {
   const tags = {
     DateTimeOriginal: exifDate,
     CreateDate: exifDate,
@@ -25,15 +39,21 @@ export async function writeDateMetadata(filePath, exifDate, options = {}) {
     tags.XPSubject = null;
   }
 
-  if (options.fileTime) {
-    tags.FileModifyDate = exifDate;
-  }
+  return tags;
+}
 
-  return exiftool.write(
-    filePath,
-    tags,
-    ['-overwrite_original']
-  );
+function buildVideoTags(exifDate, options) {
+  const creationDate = options.offset ? `${exifDate}${options.offset}` : exifDate;
+
+  return {
+    'QuickTime:CreateDate': exifDate,
+    'QuickTime:ModifyDate': exifDate,
+    'TrackCreateDate': exifDate,
+    'TrackModifyDate': exifDate,
+    'MediaCreateDate': exifDate,
+    'MediaModifyDate': exifDate,
+    'Keys:CreationDate': creationDate
+  };
 }
 
 export async function closeExifTool() {

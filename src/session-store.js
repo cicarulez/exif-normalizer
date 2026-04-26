@@ -24,7 +24,9 @@ export async function saveSession({ inputPath, displayRoot, filesCount, options,
     candidates: actionable.map((result) => ({
       file: result.file,
       action: result.action,
+      mediaType: result.mediaType,
       source: result.source,
+      replacedSource: result.replacedSource ?? null,
       exifDate: result.exifDate,
       exifOffset: result.exifOffset,
       issues: result.issues ?? [],
@@ -65,7 +67,8 @@ function serializeOptions(options) {
     fileTime: options.fileTime,
     compatTags: options.compatTags,
     cleanXp: options.cleanXp,
-    renameV2: options.renameV2
+    renameV2: options.renameV2,
+    preferFilename: options.preferFilename
   };
 }
 

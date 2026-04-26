@@ -34,9 +34,33 @@ test('keeps existing usable EXIF dates', () => {
   const mtime = new Date(2024, 0, 1, 8, 0, 0);
   const result = resolveDate({ DateTimeOriginal: '2023:07:15 14:30:11' }, { mtime }, 'IMG_20240101.jpg');
 
-  assert.equal(result.source, 'exif');
+  assert.equal(result.source, 'DateTimeOriginal');
   assert.equal(result.shouldWrite, false);
   assert.equal(formatExifDate(result.date), '2023:07:15 14:30:11');
+});
+
+test('keeps existing usable video create dates', () => {
+  const mtime = new Date(2024, 0, 1, 8, 0, 0);
+  const result = resolveDate({ CreateDate: '2023:07:15 14:30:11' }, { mtime }, 'VID_20240101_080000.mp4');
+
+  assert.equal(result.source, 'CreateDate');
+  assert.equal(result.shouldWrite, false);
+  assert.equal(formatExifDate(result.date), '2023:07:15 14:30:11');
+});
+
+test('can prefer filename date over existing metadata', () => {
+  const mtime = new Date(2024, 0, 1, 8, 0, 0);
+  const result = resolveDate(
+    { CreateDate: '2026:04:26 10:00:00' },
+    { mtime },
+    'VID_20191225_171247.mp4',
+    { preferFilename: true }
+  );
+
+  assert.equal(result.source, 'filename');
+  assert.equal(result.replacedSource, 'CreateDate');
+  assert.equal(result.shouldWrite, true);
+  assert.equal(formatExifDate(result.date), '2019:12:25 17:12:47');
 });
 
 test('falls back to mtime when EXIF and filename are unusable', () => {

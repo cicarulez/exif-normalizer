@@ -57,6 +57,7 @@ async function main() {
         compatTags: options.compatTags,
         cleanXp: options.cleanXp,
         renameV2: options.renameV2,
+        preferFilename: options.preferFilename,
         metadata: options.metadata
       });
       results.push(result);
@@ -109,6 +110,7 @@ function parseArgs(args) {
     compatTags: false,
     cleanXp: false,
     renameV2: false,
+    preferFilename: false,
     metadata: false,
     resume: null,
     listSessions: false,
@@ -151,6 +153,11 @@ function parseArgs(args) {
 
     if (arg === '--rename-v2') {
       options.renameV2 = true;
+      continue;
+    }
+
+    if (arg === '--prefer-filename') {
+      options.preferFilename = true;
       continue;
     }
 
@@ -231,7 +238,8 @@ function mergeResumeOptions(options, sessionOptions) {
     fileTime: options.fileTime || Boolean(sessionOptions.fileTime),
     compatTags: options.compatTags || Boolean(sessionOptions.compatTags),
     cleanXp: options.cleanXp || Boolean(sessionOptions.cleanXp),
-    renameV2: options.renameV2 || Boolean(sessionOptions.renameV2)
+    renameV2: options.renameV2 || Boolean(sessionOptions.renameV2),
+    preferFilename: options.preferFilename || Boolean(sessionOptions.preferFilename)
   };
 }
 
@@ -293,9 +301,10 @@ function printResult(inputDir, result, current, total, options) {
   }
 
   const offset = result.exifOffset ? ` ${result.exifOffset}` : '';
+  const replaced = result.replacedSource ? ` replaces=${result.replacedSource}` : '';
   const issues = result.issues?.length ? ` ${result.issues.join(',')}` : '';
   const renameTo = result.renameTo ? ` -> ${path.relative(inputDir, result.renameTo)}` : '';
-  console.log(`${progress} ${result.action.padEnd(7)} ${result.exifDate}${offset} ${result.source.padEnd(8)} ${relative}${issues}${renameTo}`);
+  console.log(`${progress} ${result.action.padEnd(7)} ${result.exifDate}${offset} ${result.source.padEnd(8)} ${relative}${replaced}${issues}${renameTo}`);
 
   if (result.metadataBefore) {
     printMetadataBlock('metadata before', result.metadataBefore);
@@ -333,9 +342,10 @@ Options:
       --write             Write metadata changes
       --force             Rewrite dates even when DateTimeOriginal exists
       --file-time         Also set the filesystem modification time
-      --compat-tags       Also write OffsetTime EXIF tags for Windows/phones
+      --compat-tags       Also write compatibility date tags for Windows/phones
       --clean-xp          Remove Windows XP* text tags
       --rename-v2         Rename written files by adding _V2 before extension
+      --prefer-filename   Use filename date when present, even if metadata exists
       --metadata          Print full metadata before, and after when writing
       --dry-run           Preview only, default
       --no-recursive      Scan only the input directory
