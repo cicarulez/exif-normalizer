@@ -1,0 +1,4 @@
+node_modules/
+.exif-normalizer/
+.DS_Store
+*.log
